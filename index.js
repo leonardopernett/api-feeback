@@ -62,7 +62,7 @@ app.get('/api/feeback', async (req, res) => {
       responseAll = [...responseAll , ...respuesta.Data] 
       respuesta.Data.map( async (item) => {
 
-        await pool.query(`INSERT INTO tbl_gnsfeebak_tmpencuestas (
+        await pool.query(`REPLACE INTO tbl_gnsfeebak_tmpencuestas (
            CustomerId, CustomerName, AgentName ,AddedDate,QueueName, QueueIdentifier, ConversationID ,
            Answers_0,Answers_1,Answers_2,FeedbackText
            ) values (?,?,?,?,?,?,?,?,?,?,?)`,[
@@ -81,7 +81,9 @@ app.get('/api/feeback', async (req, res) => {
    }  
 
 
-   res.json(responseAll )
+   res.json({
+    "message":"data success"
+   })
 })
 
 app.listen(4200)
