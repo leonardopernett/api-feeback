@@ -1,5 +1,5 @@
 import express from 'express'
-import axios from 'axios'
+import fetch from 'node-fetch'
 import fs from 'fs/promises'
 import { pool } from './db.js'
 
@@ -20,43 +20,47 @@ app.get('/api/feeback', async (req, res) => {
   const fechainitial = String(year+"-"+month+"-"+day+"T"+hours+":00:00")
   const fechfinal = String(year+"-"+month+"-"+day+"T"+hours+":59:59")
 
-  const results = await axios.post("https://app.feebak.com/v1/dataexport/interactions?organisationId=39",  JSON.stringify({
-    "FromDate": fechainitial,
-    "ToDate": fechfinal,
-    "Start":0,
-    "Limit": 100,
-    "Completed": true,
-  }),{
+  const results = await fetch("https://app.feebak.com/v1/dataexport/interactions?organisationId=39",{
     headers:{
       "Content-Type": "application/json",
       "Authorization": "Basic VVU0UkpQbUt1SFhVTnRramFPU0ZFdnY6SEhmb2Q2bXFOMjdYZUhwWjIyWTh1aEVE"
-      }
+      },
+      method:"POST",
+      body: JSON.stringify({
+        "FromDate": fechainitial,
+        "ToDate": fechfinal,
+        "Start":0,
+        "Limit": 100,
+        "Completed": true,
+      })
     })
-
-    let count  = results.data.TotalCount / 100;
+     const data = await results.json()
+     let count  = data.TotalCount / 100;
     
      let responseAll = [] 
 
  for (let index = 0; index <= Math.round(count); index++) { 
    
     try {
-      const response = await  axios.post("https://app.feebak.com/v1/dataexport/interactions?organisationId=39",  JSON.stringify({
-        "FromDate": fechainitial,
-        "ToDate": fechfinal,
-        "Start":index==0 ? 0 : parseInt(index+'0'+1),
-        "Limit": parseInt((index+1)+'00'),
-        "Completed": true,
-      })
-      ,{
-        maxBodyLength:Infinity,
+      const response = await  fetch("https://app.feebak.com/v1/dataexport/interactions?organisationId=39",{
+        method:'POST',
+
         headers:{
           "Content-Type": "application/json",
           "Authorization": "Basic VVU0UkpQbUt1SFhVTnRramFPU0ZFdnY6SEhmb2Q2bXFOMjdYZUhwWjIyWTh1aEVE"
-        }
+        },
+        body: JSON.stringify({
+          "FromDate": fechainitial,
+          "ToDate": fechfinal,
+          "Start":index==0 ? 0 : parseInt(index+'0'+1),
+          "Limit": parseInt((index+1)+'00'),
+          "Completed": true,
+        })
       })
+      const respuesta = await response.json()
       
-      responseAll = [...responseAll , ...response.data.Data] 
-    response.data.Data.map( async (item) => {
+      responseAll = [...responseAll , ...respuesta.Data] 
+      respuesta.Data.map( async (item) => {
 
         await pool.query(`INSERT INTO tbl_gnsfeebak_tmpencuestas (
            CustomerId, CustomerName, AgentName ,AddedDate,QueueName, QueueIdentifier, ConversationID ,
