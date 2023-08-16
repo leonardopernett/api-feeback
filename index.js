@@ -67,8 +67,8 @@ app.get('/api/feeback', async (req, res) => {
            Answers_0,Answers_1,Answers_2,FeedbackText
            ) values (?,?,?,?,?,?,?,?,?,?,?)`,[
             item.CustomerId,  item.CustomerName ,item.AgentName, item.AddedDate, item.QueueName,
-             item.QueueIdentifier,item.ConversationID, item.Answers[0].Answer,  item.Answers[1].Answer ,
-             item.Answers[2].Answer,item.FeedbackTex
+             item.QueueIdentifier,item.ConversationID, item.Answers[0].Answer ||  null ,  item.Answers[1].Answer || null,
+             item.Answers[2].Answer || null ,item.FeedbackTex
         ])
         
        
