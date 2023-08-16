@@ -6,6 +6,10 @@ import { pool } from './db.js'
 const app = express() 
 
 
+app.get('/', (req, res) => {
+  res.json({message:'Success'}) 
+})
+
 app.get('/api/feeback', async (req, res) => {
   
   const date  = new Date()
