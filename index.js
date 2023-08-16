@@ -41,8 +41,7 @@ app.get('/api/feeback', async (req, res) => {
 
  for (let index = 0; index <= Math.round(count); index++) { 
    
-    try {
-      const response = await  fetch("https://app.feebak.com/v1/dataexport/interactions?organisationId=39",{
+      fetch("https://app.feebak.com/v1/dataexport/interactions?organisationId=39",{
         method:'POST',
 
         headers:{
@@ -56,27 +55,28 @@ app.get('/api/feeback', async (req, res) => {
           "Limit": parseInt((index+1)+'00'),
           "Completed": true,
         })
-      })
-      const respuesta = await response.json()
-      
-      responseAll = [...responseAll , ...respuesta.Data] 
-      respuesta.Data.map( async (item) => {
-
-        await pool.query(`REPLACE INTO tbl_gnsfeebak_tmpencuestas (
-           CustomerId, CustomerName, AgentName ,AddedDate,QueueName, QueueIdentifier, ConversationID ,
-           Answers_0,Answers_1,Answers_2,FeedbackText
-           ) values (?,?,?,?,?,?,?,?,?,?,?)`,[
-            item.CustomerId,  item.CustomerName ,item.AgentName, item.AddedDate, item.QueueName,
-             item.QueueIdentifier,item.ConversationID, item.Answers[0]?.Answer ,  item.Answers[1]?.Answer ,
-             item.Answers[2]?.Answer  ,item.FeedbackTex
-        ])
-        
-       
-    }) 
+      }).then(
+          async (res) => await res.json()
+      )
+      .then(
+        respuesta => {
+          responseAll = [...responseAll , ...respuesta.Data] 
+          respuesta.Data.map( async (item) => {
     
-    } catch (error) { 
-      return res.json(error.message)
-    }
+            await pool.query(`REPLACE INTO tbl_gnsfeebak_tmpencuestas (
+               CustomerId, CustomerName, AgentName ,AddedDate,QueueName, QueueIdentifier, ConversationID ,
+               Answers_0,Answers_1,Answers_2,FeedbackText
+               ) values (?,?,?,?,?,?,?,?,?,?,?)`,[
+                item.CustomerId,  item.CustomerName ,item.AgentName, item.AddedDate, item.QueueName,
+                 item.QueueIdentifier,item.ConversationID, item.Answers[0]?.Answer ,  item.Answers[1]?.Answer ,
+                 item.Answers[2]?.Answer  ,item.FeedbackTex
+            ])
+            
+           
+        }) 
+        }
+      )
+      .catch(err=>console.log(err))
 
    }  
 
