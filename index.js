@@ -75,7 +75,7 @@ app.get('/api/feeback', async (req, res) => {
     }) 
     
     } catch (error) { 
-      return res.json(error)
+      return res.json(error.message)
     }
 
    }  
