@@ -59,22 +59,25 @@ app.get('/api/feeback', async (req, res) => {
        responseAll = [...responseAll, ...response.data.Data]
    }  
 
-   responseAll.map( async (item) => {
-
- 
-    
-    await pool.query(`REPLACE INTO tbl_gnsfeebak_tmpencuestas (
-       CustomerId, CustomerName, AgentName ,AddedDate,QueueName, QueueIdentifier, ConversationID ,
-       Answers_0,Answers_1,Answers_2,FeedbackText
-       ) values (?,?,?,?,?,?,?,?,?,?,?)`,[
-        item.CustomerId,  item.CustomerName ,item.AgentName, item.AddedDate, item.QueueName,
-         item.QueueIdentifier,item.ConversationID, item.Answers[0]?.Answer ,  item.Answers[1]?.Answer ,
-         item.Answers[2]?.Answer  ,item.FeedbackText
-    ])
-   })   
-
-
-   res.json(responseAll)
+   try {
+    responseAll.map( async (item) => {
+      await pool.query(`REPLACE INTO tbl_gnsfeebak_tmpencuestas (
+         CustomerId, CustomerName, AgentName ,AddedDate,QueueName, QueueIdentifier, ConversationID ,
+         Answers_0,Answers_1,Answers_2,FeedbackText
+         ) values (?,?,?,?,?,?,?,?,?,?,?)`,[
+          item.CustomerId,  item.CustomerName ,item.AgentName, item.AddedDate, item.QueueName,
+           item.QueueIdentifier,item.ConversationID, item.Answers[0]?.Answer ,  item.Answers[1]?.Answer ,
+           item.Answers[2]?.Answer  ,item.FeedbackText
+      ])
+     })   
+  
+   } catch (error) {
+      return res.status(500).json({ error: error })
+   }
+   res.status(200).json({
+      message: 'Data success',
+      status:200
+   })
 })
 
 app.listen(4200)
