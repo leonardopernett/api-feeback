@@ -1,8 +1,7 @@
 import express from 'express'
-import fetch from 'node-fetch'
-import fs from 'fs/promises'
-import { pool } from './db.js'
 
+import { pool } from './db.js'
+import axios from 'axios'
 const app = express() 
 
 
@@ -20,70 +19,62 @@ app.get('/api/feeback', async (req, res) => {
   const fechainitial = String(year+"-"+month+"-"+day+"T"+hours+":00:00")
   const fechfinal = String(year+"-"+month+"-"+day+"T"+hours+":59:59")
 
-  const results = await fetch("https://app.feebak.com/v1/dataexport/interactions?organisationId=39",{
+  const results = await axios.post("https://app.feebak.com/v1/dataexport/interactions?organisationId=39", JSON.stringify({
+    "FromDate": fechainitial,
+    "ToDate": fechfinal,
+    "Start":0,
+    "Limit": 100,
+    "Completed": true,
+  }),
+  {
+    maxBodyLength: Infinity,
     headers:{
       "Content-Type": "application/json",
       "Authorization": "Basic VVU0UkpQbUt1SFhVTnRramFPU0ZFdnY6SEhmb2Q2bXFOMjdYZUhwWjIyWTh1aEVE"
       },
-      method:"POST",
-      body: JSON.stringify({
-        "FromDate": fechainitial,
-        "ToDate": fechfinal,
-        "Start":0,
-        "Limit": 100,
-        "Completed": true,
-      })
+     
     })
-     const data = await results.json()
+     const data =  results.data
      let count  = data.TotalCount / 100;
     
      let responseAll = [] 
 
  for (let index = 0; index <= Math.round(count); index++) { 
    
-      fetch("https://app.feebak.com/v1/dataexport/interactions?organisationId=39",{
-        method:'POST',
-
+      const response = await axios.post("https://app.feebak.com/v1/dataexport/interactions?organisationId=39",
+     JSON.stringify({
+        "FromDate": fechainitial,
+        "ToDate": fechfinal,
+        "Start":index==0 ? 0 : parseInt(index+'0'+1),
+        "Limit": parseInt((index+1)+'00'),
+        "Completed": true,
+      }), {
+        maxBodyLength:Infinity,
         headers:{
           "Content-Type": "application/json",
           "Authorization": "Basic VVU0UkpQbUt1SFhVTnRramFPU0ZFdnY6SEhmb2Q2bXFOMjdYZUhwWjIyWTh1aEVE"
-        },
-        body: JSON.stringify({
-          "FromDate": fechainitial,
-          "ToDate": fechfinal,
-          "Start":index==0 ? 0 : parseInt(index+'0'+1),
-          "Limit": parseInt((index+1)+'00'),
-          "Completed": true,
-        })
-      }).then(
-          async (res) => await res.json()
-      )
-      .then(
-        respuesta => {
-          responseAll = [...responseAll , ...respuesta.Data] 
-          respuesta.Data.map( async (item) => {
-    
-            await pool.query(`REPLACE INTO tbl_gnsfeebak_tmpencuestas (
-               CustomerId, CustomerName, AgentName ,AddedDate,QueueName, QueueIdentifier, ConversationID ,
-               Answers_0,Answers_1,Answers_2,FeedbackText
-               ) values (?,?,?,?,?,?,?,?,?,?,?)`,[
-                item.CustomerId,  item.CustomerName ,item.AgentName, item.AddedDate, item.QueueName,
-                 item.QueueIdentifier,item.ConversationID, item.Answers[0]?.Answer ,  item.Answers[1]?.Answer ,
-                 item.Answers[2]?.Answer  ,item.FeedbackTex
-            ])
-            
-           
-        }) 
         }
-      )
-      .catch(err=>console.log(err))
+      })
 
+       responseAll = [...responseAll, ...response.data.Data]
    }  
 
+   responseAll.map( async (item) => {
 
-   res.json({
-    "message":"data success"
-   })
+ 
+    
+    await pool.query(`REPLACE INTO tbl_gnsfeebak_tmpencuestas (
+       CustomerId, CustomerName, AgentName ,AddedDate,QueueName, QueueIdentifier, ConversationID ,
+       Answers_0,Answers_1,Answers_2,FeedbackText
+       ) values (?,?,?,?,?,?,?,?,?,?,?)`,[
+        item.CustomerId,  item.CustomerName ,item.AgentName, item.AddedDate, item.QueueName,
+         item.QueueIdentifier,item.ConversationID, item.Answers[0]?.Answer ,  item.Answers[1]?.Answer ,
+         item.Answers[2]?.Answer  ,item.FeedbackText
+    ])
+   })   
+
+
+   res.json(responseAll)
 })
 
 app.listen(4200)
